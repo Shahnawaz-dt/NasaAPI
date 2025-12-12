@@ -1,0 +1,12 @@
+/* public/css/style.css */
+body {
+  background: linear-gradient(135deg, #0c0c2b, #1a1a3d);
+  min-height: 100vh;
+}
+
+.card {
+  transition: transform 0.3s;
+}
+.card:hover {
+  transform: translateY(-10px);
+}

@@ -1,0 +1,304 @@
+<!-- <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NASA APOD Viewer — Debug</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#0b0e20; color:#fff; padding:20px; text-align:center; }
+    #apod-container { max-width:900px; margin:0 auto; }
+    img, video, iframe { width:100%; max-height:560px; object-fit:contain; border-radius:8px; }
+    .info { margin-top:12px; font-size:1rem; color:#cfe; }
+    .error { color: #ff6b6b; margin-top: 12px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <h1>NASA Picture of the Day</h1>
+
+  <div id="apod-container">
+    <h2 id="title">Loading…</h2>
+    <p id="date"></p>
+
+    <div id="media"></div>
+
+    <p id="explanation" class="info"></p>
+    <p id="copyright" class="info"></p>
+
+    <p id="err" class="error hidden"></p>
+  </div>
+
+  <script>
+    // Wait for DOM fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[apod] DOMContentLoaded');
+
+      // safe getters (log if missing)
+      const el = id => {
+        const node = document.getElementById(id);
+        if (!node) console.warn(`[apod] missing element #${id}`);
+        return node;
+      };
+
+      const titleEl = el('title');
+      const dateEl = el('date');
+      const mediaEl = el('media');
+      const explanationEl = el('explanation');
+      const copyrightEl = el('copyright');
+      const errEl = el('err');
+
+      // Defensive: if critical container is missing, stop
+      if (!mediaEl || !titleEl) {
+        if (errEl) {
+          errEl.classList.remove('hidden');
+          errEl.textContent = 'Frontend error: required DOM elements are missing. Check console.';
+        }
+        return;
+      }
+
+      // Fetch from your backend route (adjust if your route is different)
+      fetch('/api/apod')
+        .then(async res => {
+          console.log('[apod] response status', res.status);
+          if (!res.ok) {
+            const txt = await res.text().catch(()=>'<no body>');
+            throw new Error('Bad response: ' + res.status + ' ' + txt);
+          }
+          return res.json();
+        })
+        .then(data => {
+          console.log('[apod] data received', data);
+
+          // Defensive checks for data shape
+          if (!data || typeof data !== 'object') {
+            throw new Error('APOD data invalid');
+          }
+
+          // Set text only if element exists
+          if (titleEl) titleEl.textContent = data.title || 'Untitled';
+          if (dateEl) dateEl.textContent = data.date ? 'Date: ' + data.date : '';
+          if (explanationEl) explanationEl.textContent = data.explanation || '';
+          if (copyrightEl) copyrightEl.textContent = data.copyright ? '© ' + data.copyright : '';
+
+          // Render media safely
+          mediaEl.innerHTML = ''; // clear
+
+          // Prefer media_type when using NASA APOD
+          if (data.media_type === 'image') {
+            const img = document.createElement('img');
+            img.src = data.hdurl || data.url || '';
+            img.alt = data.title || 'APOD image';
+            img.onerror = () => {
+              console.warn('[apod] image failed to load', img.src);
+              mediaEl.innerHTML = '<p class="error">Image failed to load — open URL in network tab to inspect.</p>';
+            };
+            mediaEl.appendChild(img);
+          } else if (data.media_type === 'video') {
+            // If the URL is a YouTube watch link, convert to embed
+            const url = data.url || '';
+            if (url.includes('youtube') || url.includes('youtu.be')) {
+              const embed = url.replace('watch?v=', 'embed/');
+              const iframe = document.createElement('iframe');
+              iframe.src = embed;
+              iframe.width = '100%';
+              iframe.height = '480';
+              iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+              iframe.allowFullscreen = true;
+              mediaEl.appendChild(iframe);
+            } else {
+              const video = document.createElement('video');
+              video.controls = true;
+              video.src = url;
+              mediaEl.appendChild(video);
+            }
+          } else {
+            // If media_type missing, try to show url as image first
+            const fallback = data.hdurl || data.url || '';
+            if (fallback) {
+              const img = document.createElement('img');
+              img.src = fallback;
+              img.alt = 'APOD media';
+              mediaEl.appendChild(img);
+            } else {
+              mediaEl.textContent = 'No media available';
+            }
+          }
+        })
+        .catch(err => {
+          console.error('[apod] fetch/render error', err);
+          if (errEl) {
+            errEl.classList.remove('hidden');
+            errEl.textContent = 'Error loading APOD data: ' + (err.message || err);
+          } else {
+            // show minimal feedback
+            alert('Error loading APOD: ' + (err.message || err));
+          }
+        });
+    });
+  </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NASA Astronomy Picture of the Day</title>
+
+  <!-- Bootstrap 5 + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      color: #e0e0ff;
+    }
+    .hero-section {
+      background: rgba(0,0,0,0.4);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .media-container {
+      position: relative;
+      background: #000;
+    }
+    .media-container img,
+    .media-container iframe {
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+    .skeleton {
+      background: #2a2a3d;
+      border-radius: 12px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    .btn-nasa {
+      background: linear-gradient(45deg, #0d6efd, #6610f2);
+      border: none;
+    }
+    .btn-nasa:hover {
+      background: linear-gradient(45deg, #0d6efd, #520dc2);
+    }
+  </style>
+</head>
+<body class="d-flex align-items-center py-5">
+
+  <div class="container">
+    <div class="text-center mb-5">
+      <h1 class="display-4 fw-bold text-white">
+        <i class="bi bi-stars text-warning"></i> NASA Astronomy Picture of the Day
+      </h1>
+      <p class="lead text-light">Discover the cosmos – one image at a time</p>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="hero-section p-4 p-md-5">
+
+          <!-- Loading Skeleton -->
+          <div id="loading" class="text-center py-5">
+            <div class="skeleton mb-4" style="height:400px;"></div>
+            <div class="skeleton mb-3" style="height:40px; width:70%; margin:0 auto;"></div>
+            <div class="skeleton" style="height:20px; width:40%; margin:0 auto;"></div>
+          </div>
+
+          <!-- Real Content (hidden until loaded) -->
+          <div id="apod-content" class="d-none">
+
+            <h2 id="title" class="display-5 fw-bold text-center mb-3 text-white"></h2>
+            <p id="date" class="text-center text-info mb-4"></p>
+
+            <div class="media-container mb-4 rounded overflow-hidden shadow-lg">
+              <div id="media"></div>
+            </div>
+
+            <div class="text-center mb-4">
+              <a id="hd-link" href="#" target="_blank" class="btn btn-nasa btn-lg">
+                <i class="bi bi-download"></i> View Full Resolution
+              </a>
+            </div>
+
+            <div class="bg-dark bg-opacity-50 p-4 rounded">
+              <p id="explanation" class="lead mb-3"></p>
+              <p id="copyright" class="text-end text-muted fst-italic"></p>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div id="error" class="d-none alert alert-danger text-center">
+            <i class="bi bi-exclamation-triangle"></i> <span id="error-msg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const loading = document.getElementById('loading');
+      const content = document.getElementById('apod-content');
+      const errorDiv = document.getElementById('error');
+      const errorMsg = document.getElementById('error-msg');
+
+      try {
+        const res = await fetch('/api/apod');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        // NASA returns error object if key is bad
+        if (data.code || data.error) {
+          throw new Error(data.msg || data.error.message || 'NASA API Error');
+        }
+
+        document.getElementById('title').textContent = data.title || 'No Title';
+        document.getElementById('date').textContent = `📅 ${data.date}`;
+        document.getElementById('explanation').textContent = data.explanation || 'No explanation available.';
+        document.getElementById('copyright').textContent = data.copyright ? `© ${data.copyright.trim()}` : '';
+
+        const mediaDiv = document.getElementById('media');
+        const hdLink = document.getElementById('hd-link');
+
+        if (data.media_type === 'video') {
+          const iframe = document.createElement('iframe');
+          iframe.src = data.url.replace('watch?v=', 'embed/').split('&')[0];
+          iframe.allowFullscreen = true;
+          iframe.className = 'w-100';
+          iframe.style.height = '500px';
+          mediaDiv.appendChild(iframe);
+          hdLink.classList.add('d-none');
+        } else {
+          const img = new Image();
+          img.src = data.hdurl || data.url;
+          img.alt = data.title;
+          img.className = 'img-fluid';
+          img.onload = () => mediaDiv.appendChild(img);
+          hdLink.href = data.hdurl || data.url;
+        }
+
+        loading.classList.add('d-none');
+        content.classList.remove('d-none');
+
+      } catch (err) {
+        console.error('APOD Error:', err);
+        loading.classList.add('d-none');
+        errorDiv.classList.remove('d-none');
+        errorMsg.textContent = err.message.includes('NASA') 
+          ? 'Invalid or missing NASA API key. Check your .env file!'
+          : 'Failed to load image. Try again later.';
+      }
+    });
+  </script>
+</body>
+</html>
